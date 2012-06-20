@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
-# Tip: run this script with `python -i simple_search.py`
-# (or `ipython -i simple_search.py`), so you can interactively do searches by
+# Tip: run this script with `python -i example.py`
+# (or `ipython -i example.py`), so you can interactively do searches by
 # executing: `my_index.search('...search terms...')`
 
 from nltk.corpus import machado
