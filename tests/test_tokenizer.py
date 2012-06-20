@@ -1,7 +1,7 @@
 # coding: utf-8
 
-from tokenizer import tokenize
 import unittest
+from tokenizer import tokenize
 
 
 class TestTokenize(unittest.TestCase):
