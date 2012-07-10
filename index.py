@@ -1,50 +1,47 @@
 # coding: utf-8
 
-from re import compile as regexp_compile
 from collections import defaultdict
 from tokenizer import tokenize
 
 
-regexp_bool = regexp_compile(' (AND|OR) ')
-
 class Index(object):
-    def __init__(self):
-        self.documents = set([])
-        self.index = defaultdict(lambda: set())
+    def __init__(self, stemmer=None, stopwords=None):
+        self._documents = set([])
+        self._index = defaultdict(lambda: set())
+        self._stemmer = stemmer
+        if stopwords is None:
+            stopwords = []
+        self._stopwords = stopwords
 
     def __len__(self):
-        return len(self.documents)
+        return len(self._documents)
 
     def tokens(self):
-        return set(self.index.keys())
+        return set(self._index.keys())
+
+    def stem(self, token):
+        if self._stemmer is not None:
+            return self._stemmer.stem(token)
+        else:
+            return token
 
     def add_document(self, name, contents):
-        self.documents.update([name])
+        self._documents.update([name])
+        #TODO: add ability to change tokenizer
         for token in tokenize(contents):
-            self.index[token.lower()].update([name])
-            #TODO: create a method to process term
+            lowered_token = token.lower()
+            if lowered_token not in self._stopwords:
+                stemmed_token = self.stem(lowered_token)
+                self._index[stemmed_token].update([name])
 
     def find_by_term(self, term):
-        return self.index[term.lower()]
-        #TODO: create a method to process term
+        lowered_term = term.lower()
+        stemmed_term = self.stem(lowered_term)
+        return self._index[stemmed_term]
 
     def find(self, terms):
-        index = self.index
-        documents = self.documents
-        terms = regexp_bool.split(terms)
-        result = []
-        for term in terms:
-            if term.startswith('NOT '):
-                term = documents - index[term[4:].lower()]
-                #TODO: create a method to process term
-            elif term not in ('AND', 'OR'):
-                term = index[term.lower()]
-            result.append(term)
-        while len(result) > 1:
-            before, operator, after = result[:3]
-            if operator == 'AND':
-                operation_result = before & after
-            elif operator == 'OR':
-                operation_result = before | after
-            result[:3] = [operation_result]
-        return result[0]
+        results = self._documents.copy()
+        #TODO: add ability to change tokenizer
+        for term in tokenize(terms):
+            results &= self.find_by_term(term)
+        return results

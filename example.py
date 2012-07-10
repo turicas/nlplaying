@@ -15,4 +15,4 @@ for filename in filenames:
     my_index.add_document(filename, machado.raw(filename))
 
 print 'Searching...'
-print my_index.find('brasil AND azul')
+print my_index.find('brasil azul')

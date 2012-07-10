@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import unittest
+from nltk.stem import PorterStemmer
 from index import Index
 
 
@@ -10,7 +11,7 @@ class TestIndex(unittest.TestCase):
         index.add_document('test', 'this is my first document')
         index.add_document('test2', 'this is my second document')
         self.assertEquals(len(index), 2)
-        self.assertEquals(index.documents, set(['test', 'test2']))
+        self.assertEquals(index._documents, set(['test', 'test2']))
 
     def test_should_automatically_index_when_add_documents(self):
         index = Index()
@@ -25,7 +26,7 @@ class TestIndex(unittest.TestCase):
                           'second': set(['test2']),
                           'document': set(['test', 'test2']),}
         self.assertEquals(index.tokens(), expected_tokens)
-        self.assertEquals(dict(index.index), expected_index)
+        self.assertEquals(dict(index._index), expected_index)
 
     def test_should_store_tokens_lowercase(self):
         index = Index()
@@ -37,7 +38,7 @@ class TestIndex(unittest.TestCase):
                           'first': set(['doc']),
                           'document': set(['doc']),}
         self.assertEquals(index.tokens(), expected_tokens)
-        self.assertEquals(dict(index.index), expected_index)
+        self.assertEquals(dict(index._index), expected_index)
 
     def test_should_be_able_to_find_by_term(self):
         index = Index()
@@ -60,13 +61,33 @@ class TestIndex(unittest.TestCase):
         index.add_document('doc1', 'this is my first document')
         index.add_document('doc2', 'this is my second document')
         index.add_document('doc3', 'another document')
-        self.assertEquals(index.find('this AND document'),
-                          set(['doc1', 'doc2']))
-        self.assertEquals(index.find('this AND another'), set())
-        self.assertEquals(index.find('this OR another'),
-                          set(['doc1', 'doc2', 'doc3']))
-        self.assertEquals(index.find('a OR b'), set())
-        self.assertEquals(index.find('NOT another'),
-                          set(['doc1', 'doc2']))
-        self.assertEquals(index.find('first AND NOT another'),
-                          set(['doc1']))
+        self.assertEquals(index.find('this document'), set(['doc1', 'doc2']))
+        self.assertEquals(index.find('this another'), set())
+        self.assertEquals(index.find('a b'), set())
+        self.assertEquals(index.find('another'), set(['doc3']))
+        self.assertEquals(index.find('first another'), set([]))
+
+    def test_passing_stopwords_should_remove_these_words_from_token_list(self):
+        index = Index(stopwords=['yes', 'no', ',', '.', '!'])
+        index.add_document('coffee', 'Yes, sir! No, Joyce.')
+        self.assertEquals(index._index, {'sir': set(['coffee']),
+                                         'joyce': set(['coffee'])},)
+
+    def test_passing_a_stemmer_should_index_tokens_stemmed(self):
+        porter_stemmer = PorterStemmer()
+        index = Index(stemmer=porter_stemmer)
+        index.add_document('coffee', 'I liked it')
+        self.assertEquals(index._index, {'i': set(['coffee']),
+                                         'like': set(['coffee']),
+                                         'it': set(['coffee'])},)
+        index = Index(stemmer=None)
+        index.add_document('coffee', 'I liked it')
+        self.assertEquals(index._index, {'i': set(['coffee']),
+                                         'liked': set(['coffee']),
+                                         'it': set(['coffee'])},)
+
+    def test_passing_a_stemmer_should_stem_search_term_before_matching(self):
+        porter_stemmer = PorterStemmer()
+        index = Index(stemmer=porter_stemmer)
+        index.add_document('coffee', 'I liked it')
+        self.assertEquals(index.find_by_term('liked'), set(['coffee']))
