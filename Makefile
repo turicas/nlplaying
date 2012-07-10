@@ -4,4 +4,9 @@ test:
 testx:
 	nosetests -dsvx --with-yanc --with-coverage --cover-package tokenizer,index
 
-.PHONY:	test testx
+clean:
+	find -regex '.*\.pyc' -exec rm {} \;
+	find -regex '.*~' -exec rm {} \;
+	rm -rf reg-settings.py
+
+.PHONY:	test testx clean
