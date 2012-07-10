@@ -27,6 +27,8 @@ class Index(object):
             return token
 
     def add_document(self, name, contents):
+        #TODO: add option to use another backend to store index than memory.
+        #      Example: http://pypi.python.org/pypi/shove/0.5.2
         self._documents.update([name])
         #TODO: add ability to change tokenizer
         for token in tokenize(contents):
