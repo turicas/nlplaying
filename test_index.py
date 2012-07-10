@@ -1,11 +1,25 @@
 # coding: utf-8
 
 import unittest
+import cPickle
+from os import unlink
+from os.path import exists as file_exists
+from tempfile import NamedTemporaryFile
 from nltk.stem import PorterStemmer
 from index import Index
 
 
 class TestIndex(unittest.TestCase):
+    def setUp(self):
+        self.filename = None
+
+    def tearDown(self):
+        if self.filename is not None:
+            try:
+                unlink(self.filename)
+            except OSError:
+                pass
+
     def test_should_add_documents_with_name_and_content(self):
         index = Index()
         index.add_document('test', 'this is my first document')
@@ -91,3 +105,31 @@ class TestIndex(unittest.TestCase):
         index = Index(stemmer=porter_stemmer)
         index.add_document('coffee', 'I liked it')
         self.assertEquals(index.find_by_term('liked'), set(['coffee']))
+
+    def test_calling_method_dump_should_pickle_the_index_object(self):
+        fp = NamedTemporaryFile(delete=False)
+        fp.close()
+        self.filename = fp.name
+        index = Index()
+        index.add_document('coffee', 'I liked it')
+        index.add_document('water', 'I need it')
+        index.dump(self.filename)
+        self.assertTrue(file_exists(self.filename))
+        fp = open(self.filename)
+        retrieved_index = cPickle.load(fp)
+        self.assertEquals(len(retrieved_index), 2)
+        self.assertEquals(set(retrieved_index._index.keys()),
+                          set(['i', 'liked', 'need', 'it']))
+
+    def test_calling_method_load_should_retrieve_object_from_pickle_file(self):
+        fp = NamedTemporaryFile(delete=False)
+        fp.close()
+        self.filename = fp.name
+        index = Index()
+        index.add_document('coffee', 'I liked it')
+        index.add_document('water', 'I need it')
+        index.dump(self.filename)
+        retrieved_index = Index.load(self.filename)
+        self.assertEquals(len(retrieved_index), 2)
+        self.assertEquals(set(retrieved_index._index.keys()),
+                          set(['i', 'liked', 'need', 'it']))

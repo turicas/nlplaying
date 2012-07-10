@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import cPickle as pickle
 from collections import defaultdict
 from tokenizer import tokenize
 
@@ -7,7 +8,7 @@ from tokenizer import tokenize
 class Index(object):
     def __init__(self, stemmer=None, stopwords=None):
         self._documents = set([])
-        self._index = defaultdict(lambda: set())
+        self._index = {}
         self._stemmer = stemmer
         if stopwords is None:
             stopwords = []
@@ -32,12 +33,17 @@ class Index(object):
             lowered_token = token.lower()
             if lowered_token not in self._stopwords:
                 stemmed_token = self.stem(lowered_token)
+                if stemmed_token not in self._index:
+                    self._index[stemmed_token] = set()
                 self._index[stemmed_token].update([name])
 
     def find_by_term(self, term):
         lowered_term = term.lower()
         stemmed_term = self.stem(lowered_term)
-        return self._index[stemmed_term]
+        try:
+            return self._index[stemmed_term]
+        except KeyError:
+            return set()
 
     def find(self, terms):
         results = self._documents.copy()
@@ -45,3 +51,15 @@ class Index(object):
         for term in tokenize(terms):
             results &= self.find_by_term(term)
         return results
+
+    def dump(self, filename):
+        fp = open(filename, 'w')
+        pickle.dump(self, fp)
+        fp.close()
+
+    @staticmethod
+    def load(filename):
+        fp = open(filename)
+        retrieved_object = pickle.load(fp)
+        fp.close()
+        return retrieved_object
