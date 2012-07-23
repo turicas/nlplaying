@@ -28,7 +28,9 @@ class Index(object):
 
     def add_document(self, name, contents):
         #TODO: add option to use another backend to store index than memory.
-        #      Example: http://pypi.python.org/pypi/shove/0.5.2
+        #      Examples: http://pypi.python.org/pypi/shove
+        #                http://pypi.python.org/pypi/anykeystore
+        #                http://pypi.python.org/pypi/cachecore
         self._documents.update([name])
         #TODO: add ability to change tokenizer
         for token in tokenize(contents):
@@ -47,11 +49,13 @@ class Index(object):
         except KeyError:
             return set()
 
+    #TODO: BUG: stopwords
     def find(self, terms):
         results = self._documents.copy()
         #TODO: add ability to change tokenizer
         for term in tokenize(terms):
-            results &= self.find_by_term(term)
+            if term.lower() not in self._stopwords:
+                results &= self.find_by_term(term)
         return results
 
     def dump(self, filename):
