@@ -85,9 +85,8 @@ def search(query):
                                                                   '\n    ')
                     print
 
-def histogram(data):
+def histogram(values):
     result = {}
-    values = data.values()
     for value in set(values):
         result[value] = values.count(value)
     result_list = result.items()
@@ -101,24 +100,76 @@ if __name__ == '__main__':
     indexes = load_indexes()
     histograms_stemmed = []
     histograms_probability = []
+    tokens_per_stemmed = []
+    histograms_documents_per_stemmed_token = []
+    histograms_tfidf = []
     for index in indexes:
+        tfidf = []
+        original_tokens_count = []
+        documents_per_stemmed_token = []
         stemmed_token_count = Counter()
         probabilities = {}
         for token, original_tokens in index._original_token.iteritems():
+            documents_per_stemmed_token.append(len(index._index[token]))
+            original_tokens_count.append(len(original_tokens))
             for original_token in original_tokens:
                 stemmed_token_count[token] += index._token_frequency[original_token]
-            total = stemmed_token_count[token]
+            tf = stemmed_token_count[token]
             for original_token in original_tokens:
                 token_count = float(index._token_frequency[original_token])
-                probabilities[original_token] = 100 - int((100 * token_count) / total)
-        stemmed_token_histogram = histogram(stemmed_token_count)
+                probabilities[original_token] = 100 - int((100 * token_count) / tf)
+            idf = float(len(index._documents)) / len(index._index[token])
+            tfidf.append(int(tf * idf))
+        stemmed_token_histogram = histogram(stemmed_token_count.values())
         histograms_stemmed.append((index.name, stemmed_token_histogram))
-        histograms_probability.append((index.name, histogram(probabilities)))
+        histograms_probability.append((index.name,
+                                       histogram(probabilities.values())))
+        tokens_per_stemmed.append((index.name,
+                                   histogram(original_tokens_count)))
+        histograms_documents_per_stemmed_token.append((index.name,
+                histogram(documents_per_stemmed_token)))
+        histograms_tfidf.append((index.name, histogram(tfidf)))
 
+    for index in indexes:
+        print index.name, len(index._index)
+        if index.name == 'no-stemmer-with-stopwords':
+            total_tokens = sum(index._token_frequency.values())
+    print 'Total of tokens', total_tokens
+
+    pylab.yscale('log')
+    pylab.xscale('log')
+    for name, histogram in tokens_per_stemmed:
+        x = [item[0] for item in histogram]
+        y = [item[1] for item in histogram]
+        pylab.plot(x, y, 'o-', label=name)
+    pylab.grid(True)
+    pylab.legend()
+    pylab.xlabel(u'# of tokens per stemmed token')
+    pylab.ylabel(u'Frequency of # of tokens per stemmed token')
+    pylab.savefig('number-of-tokens-per-stemmed-token.png', dpi=900)
+
+    pylab.clf()
+
+    pylab.yscale('log')
+    pylab.xscale('log')
+    for name, histogram in histograms_documents_per_stemmed_token:
+        x = [item[0] for item in histogram]
+        y = [item[1] for item in histogram]
+        pylab.plot(x, y, 'o-', label=name)
+    pylab.grid(True)
+    pylab.legend()
+    pylab.xlabel(u'# of documents per stemmed token')
+    pylab.ylabel(u'Frequency of # of documents per stemmed token')
+    pylab.savefig('number-of-documents-per-stemmed-token.png', dpi=900)
+
+    pylab.clf()
+
+    pylab.yscale('log')
+    pylab.xscale('log')
     for name, histogram in histograms_stemmed:
-        x = [item[0] for item in histogram[:50]]
-        y = [item[1] for item in histogram[:50]]
-        pylab.plot(x, y, label=name)
+        x = [item[0] for item in histogram[:500]]
+        y = [item[1] for item in histogram[:500]]
+        pylab.plot(x, y, 'o-', label=name)
     pylab.grid(True)
     pylab.legend()
     pylab.xlabel(u'Stemmed token frequency')
@@ -127,10 +178,39 @@ if __name__ == '__main__':
 
     pylab.clf()
 
+    pylab.yscale('log')
+    pylab.xscale('log')
+    for name, histogram in histograms_stemmed:
+        x = [item[0] for item in histogram]
+        y = [item[1] for item in histogram]
+        pylab.plot(x, y, 'o-', label=name)
+    pylab.grid(True)
+    pylab.legend()
+    pylab.xlabel(u'tf-idf (integer)')
+    pylab.ylabel(u'Frequency of tf-idf')
+    pylab.savefig('tfidf-frequency.png', dpi=900)
+
+    pylab.clf()
+
+    pylab.yscale('log')
+    pylab.xscale('log')
+    for name, histogram in histograms_stemmed:
+        x = [item[0] for item in histogram[:500]]
+        y = [item[1] for item in histogram[:500]]
+        pylab.plot(x, y, 'o-', label=name)
+    pylab.grid(True)
+    pylab.legend()
+    pylab.xlabel(u'Stemmed token frequency')
+    pylab.ylabel(u'Frequency of frequency')
+    pylab.savefig('stemmed-token-frequency.png', dpi=900)
+
+    pylab.clf()
+
+    pylab.yscale('log')
     for name, histogram in histograms_probability:
         x = [item[0] for item in histogram]
         y = [item[1] for item in histogram]
-        pylab.plot(x, y, label=name)
+        pylab.plot(x, y, 'o-', label=name)
     pylab.grid(True)
     pylab.legend()
     pylab.xlabel(u'Token probability')
