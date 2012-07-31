@@ -110,7 +110,7 @@ if __name__ == '__main__':
             total = stemmed_token_count[token]
             for original_token in original_tokens:
                 token_count = float(index._token_frequency[original_token])
-                probabilities[original_token] = int((100 * token_count) / total)
+                probabilities[original_token] = 100 - int((100 * token_count) / total)
         stemmed_token_histogram = histogram(stemmed_token_count)
         histograms_stemmed.append((index.name, stemmed_token_histogram))
         histograms_probability.append((index.name, histogram(probabilities)))
