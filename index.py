@@ -1,18 +1,20 @@
 # coding: utf-8
 
 import cPickle as pickle
-from collections import defaultdict
+from collections import Counter, defaultdict
 from tokenizer import tokenize
 
 
 class Index(object):
     def __init__(self, stemmer=None, stopwords=None):
         self._documents = set([])
-        self._index = {}
+        self._index = defaultdict(set)
+        self._original_token = defaultdict(set)
         self._stemmer = stemmer
         if stopwords is None:
             stopwords = []
         self._stopwords = stopwords
+        self._token_frequency = Counter()
 
     def __len__(self):
         return len(self._documents)
@@ -31,15 +33,16 @@ class Index(object):
         #      Examples: http://pypi.python.org/pypi/shove
         #                http://pypi.python.org/pypi/anykeystore
         #                http://pypi.python.org/pypi/cachecore
+        #                https://github.com/turicas/mongodict
         self._documents.update([name])
         #TODO: add ability to change tokenizer
         for token in tokenize(contents):
             lowered_token = token.lower()
             if lowered_token not in self._stopwords:
+                self._token_frequency[lowered_token] += 1
                 stemmed_token = self.stem(lowered_token)
-                if stemmed_token not in self._index:
-                    self._index[stemmed_token] = set()
                 self._index[stemmed_token].update([name])
+                self._original_token[stemmed_token].update([lowered_token])
 
     def find_by_term(self, term):
         lowered_term = term.lower()
