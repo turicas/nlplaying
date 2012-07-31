@@ -5,6 +5,7 @@ import sys
 import os
 from time import time
 from glob import glob
+from collections import Counter
 from nltk.stem.snowball import PortugueseStemmer
 from nltk.stem import PorterStemmer, LancasterStemmer, RSLPStemmer
 from nltk.corpus import machado, stopwords
@@ -84,6 +85,54 @@ def search(query):
                                                                   '\n    ')
                     print
 
+def histogram(data):
+    result = {}
+    values = data.values()
+    for value in set(values):
+        result[value] = values.count(value)
+    result_list = result.items()
+    result_list.sort(lambda a, b: cmp(a[0], b[0]))
+    return result_list
+
 if __name__ == '__main__':
+    from matplotlib import pylab
+
     #create_indexes()
     indexes = load_indexes()
+    histograms_stemmed = []
+    histograms_probability = []
+    for index in indexes:
+        stemmed_token_count = Counter()
+        probabilities = {}
+        for token, original_tokens in index._original_token.iteritems():
+            for original_token in original_tokens:
+                stemmed_token_count[token] += index._token_frequency[original_token]
+            total = stemmed_token_count[token]
+            for original_token in original_tokens:
+                token_count = float(index._token_frequency[original_token])
+                probabilities[original_token] = int((100 * token_count) / total)
+        stemmed_token_histogram = histogram(stemmed_token_count)
+        histograms_stemmed.append((index.name, stemmed_token_histogram))
+        histograms_probability.append((index.name, histogram(probabilities)))
+
+    for name, histogram in histograms_stemmed:
+        x = [item[0] for item in histogram[:50]]
+        y = [item[1] for item in histogram[:50]]
+        pylab.plot(x, y, label=name)
+    pylab.grid(True)
+    pylab.legend()
+    pylab.xlabel(u'Stemmed token frequency')
+    pylab.ylabel(u'Frequency of frequency')
+    pylab.savefig('stemmed-token-frequency.png', dpi=900)
+
+    pylab.clf()
+
+    for name, histogram in histograms_probability:
+        x = [item[0] for item in histogram]
+        y = [item[1] for item in histogram]
+        pylab.plot(x, y, label=name)
+    pylab.grid(True)
+    pylab.legend()
+    pylab.xlabel(u'Token probability')
+    pylab.ylabel(u'Frequency of token probability')
+    pylab.savefig('token-probability.png', dpi=900)
